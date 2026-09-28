@@ -11,6 +11,8 @@
 
     <p>3-Tier Java Application</p>
 
+    <p><strong>Application Version: v2.0</strong></p>
+
     <hr>
 
     <a href="${pageContext.request.contextPath}/login">
