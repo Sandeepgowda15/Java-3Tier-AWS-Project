@@ -9,6 +9,7 @@ on:
       - main
 
 permissions:
+  id-token: write
   contents: read
 
 jobs:
@@ -45,3 +46,14 @@ jobs:
         with:
           name: javaloginapp-war
           path: Java-Login-App/target/*.war
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::089783390772:role/github-actions-java-3tier-deploy-role
+          role-session-name: GitHubActions-Java3Tier
+          aws-region: us-east-1
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
