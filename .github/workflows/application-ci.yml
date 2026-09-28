@@ -4,9 +4,18 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Application version to deploy"
+        required: true
+        default: "v1.0"
+        type: string
 
 permissions:
   id-token: write
@@ -57,3 +66,53 @@ jobs:
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
+      - name: Deploy application
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: .
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          echo "Deploying application version: $VERSION"
+
+          aws s3 cp \
+            Java-Login-App/target/*.war \
+            s3://java-3tier-app-deploy-089783390772/releases/$VERSION/javaloginapp.war
+
+          echo "Application uploaded to S3"
+
+          COMMAND_ID=$(aws ssm send-command \
+            --region us-east-1 \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Project,Values=java-3tier-app" "Key=tag:Tier,Values=application" \
+            --parameters 'commands=[
+              "set -e",
+              "echo Deploying application...",
+              "aws s3 cp s3://java-3tier-app-deploy-089783390772/releases/'"$VERSION"'/javaloginapp.war /tmp/javaloginapp.war",
+              "rm -rf /opt/tomcat11/webapps/javaloginapp",
+              "rm -f /opt/tomcat11/webapps/javaloginapp.war",
+              "cp /tmp/javaloginapp.war /opt/tomcat11/webapps/javaloginapp.war",
+              "chown tomcat11:tomcat11 /opt/tomcat11/webapps/javaloginapp.war",
+              "systemctl restart tomcat11",
+              "sleep 10",
+              "systemctl is-active --quiet tomcat11",
+              "echo Deployment completed successfully"
+            ]' \
+            --comment "Deploy Java Login Application $VERSION" \
+            --max-concurrency "1" \
+            --max-errors "0" \
+            --query 'Command.CommandId' \
+            --output text)
+
+          echo "SSM Command ID: $COMMAND_ID"
+
+          echo "Waiting for deployment..."
+
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id i-0c0d6ab279b6cb817
+
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id i-0e92194b41d1cdced
+
+          echo "Deployment command completed on both application instances"
