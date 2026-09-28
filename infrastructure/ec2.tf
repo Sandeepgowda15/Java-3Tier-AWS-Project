@@ -225,7 +225,7 @@ SERVICEEOF
     echo "Downloading application WAR from S3..."
 
     aws s3 cp \
-      s3://java-3tier-app-deploy-089783390772/javaloginapp-0.0.1-SNAPSHOT.war \
+      s3://java-3tier-app-deploy-089783390772/current/javaloginapp.war \
       /tmp/javaloginapp.war
 
     # --------------------------------------------------
