@@ -109,14 +109,36 @@ jobs:
 
           echo "SSM Command ID: $COMMAND_ID"
 
-          echo "Waiting for deployment..."
+          echo "Waiting for deployment to complete on both instances..."
 
-          aws ssm wait command-executed \
-            --command-id "$COMMAND_ID" \
-            --instance-id i-0c0d6ab279b6cb817
+          for INSTANCE_ID in i-0c0d6ab279b6cb817 i-0e92194b41d1cdced; do
+            echo "Checking deployment on $INSTANCE_ID"
 
-          aws ssm wait command-executed \
-            --command-id "$COMMAND_ID" \
-            --instance-id i-0e92194b41d1cdced
+            while true; do
+              STATUS=$(aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query 'Status' \
+                --output text 2>/dev/null || true)
 
-          echo "Deployment command completed on both application instances"
+              echo "$INSTANCE_ID status: $STATUS"
+
+              case "$STATUS" in
+                Success)
+                  break
+                  ;;
+                Failed|Cancelled|TimedOut|Cancelling)
+                  echo "Deployment failed on $INSTANCE_ID"
+                  exit 1
+                  ;;
+                Pending|InProgress|Delayed|"")
+                  sleep 10
+                  ;;
+                *)
+                  sleep 10
+                  ;;
+              esac
+            done
+          done
+
+          echo "Deployment completed successfully on both application instances"
