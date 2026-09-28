@@ -78,6 +78,10 @@ jobs:
             Java-Login-App/target/*.war \
             s3://java-3tier-app-deploy-089783390772/releases/$VERSION/javaloginapp.war
 
+            aws s3 cp \
+            Java-Login-App/target/*.war \
+            s3://java-3tier-app-deploy-089783390772/current/javaloginapp.war
+
           echo "Application uploaded to S3"
 
           COMMAND_ID=$(aws ssm send-command \
