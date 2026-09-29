@@ -78,7 +78,7 @@ jobs:
             Java-Login-App/target/*.war \
             s3://java-3tier-app-deploy-089783390772/releases/$VERSION/javaloginapp.war
 
-            aws s3 cp \
+          aws s3 cp \
             Java-Login-App/target/*.war \
             s3://java-3tier-app-deploy-089783390772/current/javaloginapp.war
 
@@ -109,36 +109,72 @@ jobs:
 
           echo "SSM Command ID: $COMMAND_ID"
 
-          echo "Waiting for deployment to complete on both instances..."
+          EXPECTED_COUNT=$(aws autoscaling describe-auto-scaling-groups \
+            --auto-scaling-group-names java-3tier-app-asg \
+            --query 'AutoScalingGroups[0].DesiredCapacity' \
+            --output text)
 
-          for INSTANCE_ID in i-0c0d6ab279b6cb817 i-0e92194b41d1cdced; do
-            echo "Checking deployment on $INSTANCE_ID"
+          echo "Expected application instances: $EXPECTED_COUNT"
 
-            while true; do
-              STATUS=$(aws ssm get-command-invocation \
+          START_TIME=$(date +%s)
+          TIMEOUT_SECONDS=600
+
+          while true; do
+            CURRENT_TIME=$(date +%s)
+            ELAPSED=$((CURRENT_TIME - START_TIME))
+
+            if [ "$ELAPSED" -ge "$TIMEOUT_SECONDS" ]; then
+              echo "Deployment timed out after 10 minutes"
+
+              aws ssm list-command-invocations \
                 --command-id "$COMMAND_ID" \
-                --instance-id "$INSTANCE_ID" \
-                --query 'Status' \
-                --output text 2>/dev/null || true)
+                --details \
+                --query 'CommandInvocations[*].[InstanceId,Status,StatusDetails]' \
+                --output table
 
-              echo "$INSTANCE_ID status: $STATUS"
+              exit 1
+            fi
 
-              case "$STATUS" in
-                Success)
-                  break
-                  ;;
-                Failed|Cancelled|TimedOut|Cancelling)
-                  echo "Deployment failed on $INSTANCE_ID"
-                  exit 1
-                  ;;
-                Pending|InProgress|Delayed|"")
-                  sleep 10
-                  ;;
-                *)
-                  sleep 10
-                  ;;
-              esac
-            done
+            INVOCATION_COUNT=$(aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" \
+              --query 'length(CommandInvocations)' \
+              --output text)
+
+            echo "SSM invocations: $INVOCATION_COUNT/$EXPECTED_COUNT"
+
+            if [ "$INVOCATION_COUNT" -ge "$EXPECTED_COUNT" ]; then
+
+              STATUSES=$(aws ssm list-command-invocations \
+                --command-id "$COMMAND_ID" \
+                --query 'CommandInvocations[*].Status' \
+                --output text)
+
+              echo "Current statuses: $STATUSES"
+
+              if echo "$STATUSES" | grep -Eq 'Failed|Cancelled|TimedOut|Cancelling|Delivery Timed Out'; then
+                echo "One or more SSM deployments failed"
+
+                aws ssm list-command-invocations \
+                  --command-id "$COMMAND_ID" \
+                  --details \
+                  --query 'CommandInvocations[*].[InstanceId,Status,StatusDetails]' \
+                  --output table
+
+                exit 1
+              fi
+
+              SUCCESS_COUNT=$(aws ssm list-command-invocations \
+                --command-id "$COMMAND_ID" \
+                --query 'length(CommandInvocations[?Status==`Success`])' \
+                --output text)
+
+              echo "Successful deployments: $SUCCESS_COUNT/$EXPECTED_COUNT"
+
+              if [ "$SUCCESS_COUNT" -eq "$EXPECTED_COUNT" ]; then
+                echo "Deployment completed successfully on all application instances"
+                break
+              fi
+            fi
+
+            sleep 10
           done
-
-          echo "Deployment completed successfully on both application instances"
