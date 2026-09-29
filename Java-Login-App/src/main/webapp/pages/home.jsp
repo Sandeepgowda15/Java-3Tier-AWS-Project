@@ -11,7 +11,7 @@
 
     <p>3-Tier Java Application</p>
 
-    <p><strong>Application Version: v2.0</strong></p>
+    <p><strong>Application Version: v3.0</strong></p>
 
     <hr>
 
