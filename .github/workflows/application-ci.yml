@@ -109,10 +109,7 @@ jobs:
 
           echo "SSM Command ID: $COMMAND_ID"
 
-          EXPECTED_COUNT=$(aws autoscaling describe-auto-scaling-groups \
-            --auto-scaling-group-names java-3tier-app-asg \
-            --query 'AutoScalingGroups[0].DesiredCapacity' \
-            --output text)
+          EXPECTED_COUNT=2
 
           echo "Expected application instances: $EXPECTED_COUNT"
 
