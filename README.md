@@ -284,7 +284,162 @@ infrastructure/
 ├── iam.tf
 ├── rds.tf
 └── security.tf
+```
 
+## CI/CD Pipeline
+
+GitHub Actions is used to automate application CI/CD and Terraform infrastructure validation and deployment.
+
+### Application CI/CD
+
+The Java application CI/CD workflow is defined in:
+
+```text
+.github/workflows/application-ci.yml
+```
+
+The workflow performs the following steps:
+
+1. Checkout source code
+2. Set up Java 21
+3. Run Maven tests
+4. Build the WAR file
+5. Upload the WAR artifact
+6. Authenticate to AWS using GitHub OIDC
+7. Upload the application WAR to Amazon S3
+8. Deploy the selected application version to EC2 using AWS Systems Manager
+9. Verify deployment success on all application instances
+
+Application versions are deployed using version tags such as:
+
+```text
+v1.0
+v2.0
+v3.0
+```
+
+Versioned application artifacts are stored in:
+
+```text
+s3://java-3tier-app-deploy-089783390772/releases/<version>/javaloginapp.war
+```
+
+The current application artifact is stored at:
+
+```text
+s3://java-3tier-app-deploy-089783390772/current/javaloginapp.war
+```
+
+### Terraform CI
+
+The Terraform CI workflow is defined in:
+
+```text
+.github/workflows/terraform-ci.yml
+```
+
+It performs:
+
+1. Checkout source code
+2. Set up Terraform
+3. Authenticate to AWS using GitHub OIDC
+4. Verify AWS identity
+5. Run Terraform format check
+6. Run Terraform init
+7. Run Terraform validate
+8. Run Terraform plan
+
+### Terraform Apply
+
+The Terraform deployment workflow is defined in:
+
+```text
+.github/workflows/terraform-apply.yml
+```
+
+It can be manually triggered using GitHub Actions.
+
+The workflow performs:
+
+1. Checkout source code
+2. Set up Terraform
+3. Authenticate to AWS using GitHub OIDC
+4. Initialize Terraform
+5. Generate a Terraform plan
+6. Apply the Terraform plan
+
+### GitHub OIDC Authentication
+
+GitHub Actions uses AWS IAM OIDC authentication instead of storing long-lived AWS access keys in GitHub.
+
+Separate IAM roles are used for:
+
+- Terraform plan
+- Terraform apply
+- Java application deployment
+
+### Terraform Remote State
+
+Terraform state is stored remotely in Amazon S3.
+
+```text
+S3 Bucket:
+java-3tier-terraform-state-089783390772
+
+State Key:
+java-3tier-app/terraform.tfstate
+
+Region:
+us-east-1
+```
+
+The S3 backend is configured with encryption and state locking.
+
+### CI/CD Verification
+
+The complete CI/CD process was successfully verified.
+
+Application version `v3.0` was deployed through GitHub Actions.
+
+The deployment completed successfully on both application EC2 instances.
+
+The Application Load Balancer returned:
+
+```text
+Application Version: v3.0
+```
+
+This confirms the end-to-end flow:
+
+```text
+GitHub
+   |
+   v
+GitHub Actions
+   |
+   +--------------------+
+   |                    |
+   v                    v
+Java CI/CD         Terraform CI/CD
+   |                    |
+   v                    v
+Build WAR          Terraform Plan/Apply
+   |
+   v
+Amazon S3
+   |
+   v
+AWS Systems Manager
+   |
+   v
+EC2 / Tomcat
+   |
+   v
+Application Load Balancer
+   |
+   v
+Users
+```
 
 ## Testing and Verification
 
@@ -431,11 +586,8 @@ Possible future improvements include:
 - Route 53 DNS
 - CloudWatch dashboards and alarms
 - Centralized application logging
-- Automated CI/CD pipeline
 - Blue/green deployment
 - Rolling deployments
-- S3 versioning
-- Terraform remote state
 - Automated application testing
 - RDS Multi-AZ
 - Containerized deployment
