@@ -183,7 +183,6 @@ Java-3Tier-AWS-Project/
 |   |       +-- JavaloginappApplication.java
 |   |       +-- ServletInitializer.java
 |   |
-|   +-- compute.tf
 |   +-- pom.xml
 |
 +-- infrastructure/
