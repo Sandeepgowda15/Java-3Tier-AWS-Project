@@ -597,7 +597,9 @@ These are future improvements and are not presented as currently implemented fea
 
 ## Final Project Status
 
-The core Java application and AWS infrastructure are complete and verified.
+The Java 3-Tier AWS application was successfully deployed, tested, and verified on AWS.
+
+After completing the deployment and functional testing, the AWS infrastructure was intentionally destroyed to minimize ongoing AWS costs. The Terraform configuration, CI/CD workflows, application source code, and documentation remain in the repository so the complete environment can be recreated when required.
 
 ### Application
 
@@ -611,7 +613,7 @@ JSP/JSTL
 Tomcat 11
 MySQL
 
-### AWS
+### AWS Services Used
 
 VPC
 Public/Private Subnets
@@ -628,7 +630,26 @@ IAM
 Security Groups
 Terraform
 
-### Final Architecture
+### Deployment Verification
+
+The application was successfully verified before infrastructure cleanup.
+
+Verified functionality included:
+
+- Application deployment through the CI/CD pipeline
+- EC2 application instances running behind the Application Load Balancer
+- Target group health checks
+- User registration
+- User login
+- User logout
+- MySQL database connectivity
+- Spring Security authentication
+- BCrypt password authentication
+- SSM-based deployment
+- Terraform infrastructure deployment
+- GitHub Actions CI/CD workflows
+
+### Final Architecture Used During Testing
 
                     INTERNET
                        |
@@ -658,7 +679,7 @@ Terraform
                 | Private     |
                 +-------------+
 
-### Final Application Flow
+### Final Application Flow Used During Testing
 
 User
   |
@@ -682,12 +703,56 @@ Spring Boot
           v
        MySQL
 
+### Current AWS State
+
+The following AWS infrastructure and resources were intentionally removed after successful testing to minimize ongoing AWS costs:
+
+- EC2 instances
+- Auto Scaling Group
+- Application Load Balancer
+- Target Group
+- NAT Gateway
+- Elastic IP
+- RDS database instance
+- Project VPC and associated subnets
+- Project security groups
+- Project route tables
+- Old React CodePipeline resources
+- Old React CodeBuild project
+- Old React CodeDeploy application
+- Old React ECR repository
+- Old React CodePipeline artifact bucket
+- Old React CloudWatch log groups
+
+The default AWS VPC was retained.
+
+### Data and Project Preservation
+
+The following project resources were retained:
+
+- Terraform source configuration
+- GitHub Actions workflows
+- GitHub OIDC/IAM configuration used by the CI/CD workflows
+- Terraform remote state S3 bucket
+- Java application deployment S3 bucket
+- Final RDS snapshot for possible future database restoration
+- GitHub repository and project documentation
+
+The final RDS snapshot was created before deleting the RDS instance and is retained separately from the destroyed live infrastructure.
+
+### Important Note
+
+The previously used ALB endpoint is no longer active because the AWS infrastructure was intentionally destroyed after testing.
+
+The project can be recreated by using the Terraform configuration and the existing CI/CD workflows.
+
 ### Project Completion
 
-The project is ready for:
+The project is now complete and suitable for:
 
-- Final Git cleanup
 - GitHub publication
 - Architecture presentation
 - Technical documentation review
 - AWS/DevOps interview preparation
+- Terraform and CI/CD demonstration
+- Future infrastructure recreation and testing
